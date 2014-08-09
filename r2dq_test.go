@@ -1,9 +1,18 @@
 package r2dq
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 func tearUp() *Queue {
-	return NewQueue("localhost:6379", 0, "test")
+	redisAddr := "localhost:6379"
+	env := os.Getenv("REDIS_ADDR")
+	if env != "" {
+		redisAddr = env
+	}
+
+	return NewQueue(redisAddr, 0, "test")
 }
 
 func tearDown(q *Queue) {
