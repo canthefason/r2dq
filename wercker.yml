@@ -1,4 +1,4 @@
-box: pjvds/golang@1.0.1
+box: wercker/golang@1.2.0
 services:
   - wercker/redis@0.0.8
 
