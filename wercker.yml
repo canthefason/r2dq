@@ -4,7 +4,21 @@ services:
 
 build:
   steps:
+    - setup-go-workspace
     - script:
         name: set environment variables
         code: export REDIS_ADDR=$WERCKER_REDIS_URL
+    - script:
+        name: go get
+        code: |
+          cd $WERCKER_SOURCE_DIR
+          go get ./...
+    - script:
+        name: go build
+        code: |
+          go build ./...
+    - script:
+        name: go test
+        code: |
+          go test ./...
 
