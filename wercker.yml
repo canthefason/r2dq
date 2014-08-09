@@ -7,7 +7,7 @@ build:
     - setup-go-workspace
     - script:
         name: set environment variables
-        code: export REDIS_ADDR=$WERCKER_REDIS_URL
+        code: export REDIS_ADDR=$WERCKER_REDIS_HOST:$WERCKER_REDIS_PORT
     - script:
         name: go get
         code: |
