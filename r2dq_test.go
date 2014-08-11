@@ -1,6 +1,7 @@
 package r2dq
 
 import (
+	"log"
 	"os"
 	"testing"
 )
@@ -16,8 +17,17 @@ func tearUp() *Queue {
 }
 
 func tearDown(q *Queue) {
-	q.redisConn.Del(q.waitingQueueKey())
-	q.redisConn.Del(q.procQueueKey())
+	res := q.redisConn.Del(q.waitingQueueKey())
+
+	if res.Err() != nil {
+		log.Printf("An error occurred in tearDown: %s", res.Err())
+	}
+
+	res = q.redisConn.Del(q.procQueueKey())
+	if res.Err() != nil {
+		log.Printf("An error occurred in tearDown: %s", res.Err())
+	}
+
 	q.Close()
 }
 
