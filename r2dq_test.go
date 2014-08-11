@@ -129,13 +129,13 @@ func TestAck(t *testing.T) {
 	}
 
 	err = q.Ack("animal")
-	if err != nil {
+	if err != nil && err != ErrNotFound {
 		t.Errorf("Expected %s but got %s", ErrNotFound, err)
 	}
 
 	err = q.Ack("drteeth")
 	if err != nil {
-		t.Errorf("Expected %s but got %s", ErrNotFound, err)
+		t.Errorf("Expected nil but got %s", err)
 	}
 
 	length = q.redisConn.LLen(q.procQueueKey())
