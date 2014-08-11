@@ -97,15 +97,6 @@ func TestDequeue(t *testing.T) {
 		t.Errorf("Expected %d but got %d", 2, length.Val())
 	}
 
-	res, err = q.Dequeue()
-	if err != nil {
-		t.Errorf("Expected nil but got %s", err)
-	}
-
-	if res != "" {
-		t.Errorf("Expected empty queue, but got %s", res)
-	}
-
 }
 
 func TestAck(t *testing.T) {
