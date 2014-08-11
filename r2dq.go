@@ -40,7 +40,7 @@ func (q *Queue) Queue(value string) error {
 }
 
 func (q *Queue) Dequeue() (string, error) {
-	res := q.redisConn.RPopLPush(q.waitingQueueKey(), q.procQueueKey())
+	res := q.redisConn.BRPopLPush(q.waitingQueueKey(), q.procQueueKey(), 0)
 
 	if res.Err() != nil && res.Err() != redis.Nil {
 		return "", res.Err()
