@@ -3,6 +3,7 @@ package r2dq
 import (
 	"errors"
 	"fmt"
+	"log"
 
 	"gopkg.in/redis.v2"
 )
@@ -50,13 +51,31 @@ func (q *Queue) Dequeue() (string, error) {
 }
 
 func (q *Queue) Ack(val string) error {
-	res := q.redisConn.LRem(q.procQueueKey(), 1, val)
+	return q.removeProcItem(val)
+}
 
+func (q *Queue) NAck(val string) error {
+	if err := q.removeProcItem(val); err != nil {
+		return err
+	}
+
+	err := q.Queue(val)
+	if err != nil {
+		log.Printf("An error occurred while sending NAck for %s: %s", val, err)
+	}
+
+	return err
+}
+
+func (q *Queue) removeProcItem(val string) error {
+	res := q.redisConn.LRem(q.procQueueKey(), 1, val)
 	if res.Err() != nil {
-		if res.Err() == redis.Nil {
-			return ErrNotFound
-		}
 		return res.Err()
+	}
+
+	// not found
+	if res.Val() == 0 {
+		return ErrNotFound
 	}
 
 	return nil

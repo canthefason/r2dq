@@ -134,6 +134,31 @@ func TestAck(t *testing.T) {
 	}
 }
 
+func TestNAck(t *testing.T) {
+	q := tearUp()
+	defer tearDown(q)
+
+	q.Queue("drteeth")
+	q.Queue("floyd")
+
+	q.Dequeue()
+
+	err := q.NAck("drteeth")
+	if err != nil {
+		t.Errorf("Expected nil but got %s", err)
+	}
+
+	length := q.redisConn.LLen(q.procQueueKey())
+	if length.Val() != 0 {
+		t.Errorf("Expected %d but got %d", 0, length.Val())
+	}
+
+	length = q.redisConn.LLen(q.waitingQueueKey())
+	if length.Val() != 2 {
+		t.Errorf("Expected %d but got %d", 2, length.Val())
+	}
+}
+
 func TestGracefulShutdown(t *testing.T) {
 	q := tearUp()
 	defer tearDown(q)
