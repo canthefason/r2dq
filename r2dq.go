@@ -86,6 +86,17 @@ func (q *Queue) Close() {
 	q.redisConn.Close()
 }
 
+func (q *Queue) Purge() {
+	res := q.redisConn.Del(q.procQueueKey())
+	if res.Err() != nil {
+		log.Panicf("Could not purge unacked message queue: %s", res.Err())
+	}
+	res = q.redisConn.Del(q.waitingQueueKey())
+	if res.Err() != nil {
+		log.Panicf("Could not purge message queue: %s", res.Err())
+	}
+}
+
 func (q *Queue) gracefulShutdown() {
 	res := q.redisConn.RPopLPush(q.procQueueKey(), q.waitingQueueKey())
 	for res.Val() != "" {

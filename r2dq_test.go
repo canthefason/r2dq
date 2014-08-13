@@ -183,3 +183,31 @@ func TestGracefulShutdown(t *testing.T) {
 	}
 
 }
+
+func TestPurge(t *testing.T) {
+	q := tearUp()
+	defer tearDown(q)
+	q.Queue("gonzo")
+	q.Queue("fuzzy")
+	q.Dequeue()
+
+	q.Purge()
+	res := q.redisConn.LLen(q.procQueueKey())
+	if res.Err() != nil {
+		t.Errorf("Expected nil but got %s", res.Err())
+		t.FailNow()
+	}
+	if res.Val() != 0 {
+		t.Errorf("Expected %d but got %d", 0, res.Val())
+	}
+
+	res = q.redisConn.LLen(q.waitingQueueKey())
+	if res.Err() != nil {
+		t.Errorf("Expected nil but got %s", res.Err())
+		t.FailNow()
+	}
+	if res.Val() != 0 {
+		t.Errorf("Expected %d but got %d", 0, res.Val())
+	}
+}
+
