@@ -211,3 +211,16 @@ func TestPurge(t *testing.T) {
 	}
 }
 
+func TestLength(t *testing.T) {
+	q := tearUp()
+	defer tearDown(q)
+	q.Queue("gonzo")
+	length, err := q.Len()
+	if err != nil {
+		t.Errorf("Expected nil but got %s", err)
+	}
+
+	if length != 1 {
+		t.Errorf("Expected %d but got %d", 1, length)
+	}
+}

@@ -97,6 +97,11 @@ func (q *Queue) Purge() {
 	}
 }
 
+func (q *Queue) Len() (int64, error) {
+	res := q.redisConn.LLen(q.waitingQueueKey())
+
+	return res.Val(), res.Err()
+}
 func (q *Queue) gracefulShutdown() {
 	res := q.redisConn.RPopLPush(q.procQueueKey(), q.waitingQueueKey())
 	for res.Val() != "" {
