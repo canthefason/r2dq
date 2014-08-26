@@ -14,18 +14,20 @@ const (
 )
 
 var (
-	ErrNotFound = errors.New("not found")
+	ErrNotFound   = errors.New("not found")
+	ErrConnClosed = errors.New("connection closed")
 )
 
 type Queue struct {
-	prefix    string
-	redisConn *redis.Client
+	prefix       string
 	redisConnIn  *redis.Client
 	redisConnOut *redis.Client
+	closeChan    chan bool
 }
 
 func NewQueue(addr string, db int, prefix string) *Queue {
 	q := new(Queue)
+	q.closeChan = make(chan bool, 1)
 	q.prefix = prefix
 	q.redisConnIn = redis.NewTCPClient(&redis.Options{
 		Addr:     addr,
@@ -52,7 +54,12 @@ func (q *Queue) Dequeue() (string, error) {
 	res := q.redisConnOut.BRPopLPush(q.waitingQueueKey(), q.procQueueKey(), 0)
 
 	if res.Err() != nil && res.Err() != redis.Nil {
-		return "", res.Err()
+		select {
+		case <-q.closeChan:
+			return "", ErrConnClosed
+		default:
+			return "", res.Err()
+		}
 	}
 
 	return res.Val(), nil
@@ -90,8 +97,15 @@ func (q *Queue) removeProcItem(val string) error {
 }
 
 func (q *Queue) Close() {
+	// first stop dequeing
+	q.StopDequeue()
 	q.gracefulShutdown()
 	q.redisConnIn.Close()
+}
+
+func (q *Queue) StopDequeue() {
+	q.closeChan <- true
+	q.redisConnOut.Close()
 }
 
 func (q *Queue) Purge() {

@@ -224,3 +224,40 @@ func TestLength(t *testing.T) {
 		t.Errorf("Expected %d but got %d", 1, length)
 	}
 }
+
+func TestRepetitiveDequeue(t *testing.T) {
+	q := tearUp()
+	defer tearDown(q)
+	first := "gonzo"
+	second := "bigbird"
+	count := 0
+
+	go func() {
+		for {
+			res, err := q.Dequeue()
+			if err == ErrConnClosed {
+				return
+			}
+
+			if err != nil {
+				t.Errorf("Expected nil but got %s", err)
+				t.FailNow()
+			}
+			if res != first && res != second {
+				t.Errorf("Expected %s or %s but got %s", first, second, res)
+				t.FailNow()
+			}
+			count++
+
+			if count > 2 {
+				t.Errorf("Expected only 2 dequeue operations but got %d", count)
+			}
+		}
+
+	}()
+
+	q.Queue(first)
+	q.Queue(second)
+	q.StopDequeue()
+	q.gracefulShutdown()
+}
