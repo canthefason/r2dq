@@ -17,13 +17,13 @@ func tearUp() *Queue {
 }
 
 func tearDown(q *Queue) {
-	res := q.redisConn.Del(q.waitingQueueKey())
+	res := q.redisConnIn.Del(q.waitingQueueKey())
 
 	if res.Err() != nil {
 		log.Printf("An error occurred in tearDown: %s", res.Err())
 	}
 
-	res = q.redisConn.Del(q.procQueueKey())
+	res = q.redisConnIn.Del(q.procQueueKey())
 	if res.Err() != nil {
 		log.Printf("An error occurred in tearDown: %s", res.Err())
 	}
@@ -40,13 +40,13 @@ func TestQueue(t *testing.T) {
 		t.Errorf("Expected nil but got %s", err)
 	}
 
-	res := q.redisConn.LLen(q.waitingQueueKey())
+	res := q.redisConnIn.LLen(q.waitingQueueKey())
 	if res.Val() != 1 {
 		t.Errorf("Expected %d but got %d", 1, res.Val())
 	}
 
 	q.Queue("floyd")
-	res = q.redisConn.LLen(q.waitingQueueKey())
+	res = q.redisConnIn.LLen(q.waitingQueueKey())
 	if res.Val() != 2 {
 		t.Errorf("Expected %d but got %d", 2, res.Val())
 	}
@@ -57,13 +57,13 @@ func TestDequeue(t *testing.T) {
 	defer tearDown(q)
 
 	q.Queue("drteeth")
-	length := q.redisConn.LLen(q.waitingQueueKey())
+	length := q.redisConnIn.LLen(q.waitingQueueKey())
 	if length.Val() != 1 {
 		t.Errorf("Expected %d but got %d", 1, length.Val())
 	}
 
 	q.Queue("floyd")
-	length = q.redisConn.LLen(q.waitingQueueKey())
+	length = q.redisConnIn.LLen(q.waitingQueueKey())
 	if length.Val() != 2 {
 		t.Errorf("Expected %d but got %d", 2, length.Val())
 	}
@@ -78,7 +78,7 @@ func TestDequeue(t *testing.T) {
 		t.Errorf("Expected %s but got %s", "drteeth", res)
 	}
 
-	length = q.redisConn.LLen(q.procQueueKey())
+	length = q.redisConnIn.LLen(q.procQueueKey())
 	if length.Val() != 1 {
 		t.Errorf("Expected %d but got %d", 1, length.Val())
 	}
@@ -92,7 +92,7 @@ func TestDequeue(t *testing.T) {
 		t.Errorf("Expected %s but got %s", "floyd", res)
 	}
 
-	length = q.redisConn.LLen(q.procQueueKey())
+	length = q.redisConnIn.LLen(q.procQueueKey())
 	if length.Val() != 2 {
 		t.Errorf("Expected %d but got %d", 2, length.Val())
 	}
@@ -114,7 +114,7 @@ func TestAck(t *testing.T) {
 		t.Errorf("Expected nil but got %s", err)
 	}
 
-	length := q.redisConn.LLen(q.procQueueKey())
+	length := q.redisConnIn.LLen(q.procQueueKey())
 	if length.Val() != 1 {
 		t.Errorf("Expected %d but got %d", 1, length.Val())
 	}
@@ -129,7 +129,7 @@ func TestAck(t *testing.T) {
 		t.Errorf("Expected nil but got %s", err)
 	}
 
-	length = q.redisConn.LLen(q.procQueueKey())
+	length = q.redisConnIn.LLen(q.procQueueKey())
 	if length.Val() != 0 {
 		t.Errorf("Expected %d but got %d", 0, length.Val())
 	}
@@ -149,12 +149,12 @@ func TestNAck(t *testing.T) {
 		t.Errorf("Expected nil but got %s", err)
 	}
 
-	length := q.redisConn.LLen(q.procQueueKey())
+	length := q.redisConnIn.LLen(q.procQueueKey())
 	if length.Val() != 0 {
 		t.Errorf("Expected %d but got %d", 0, length.Val())
 	}
 
-	length = q.redisConn.LLen(q.waitingQueueKey())
+	length = q.redisConnIn.LLen(q.waitingQueueKey())
 	if length.Val() != 2 {
 		t.Errorf("Expected %d but got %d", 2, length.Val())
 	}
@@ -172,12 +172,12 @@ func TestGracefulShutdown(t *testing.T) {
 
 	q.gracefulShutdown()
 
-	length := q.redisConn.LLen(q.procQueueKey())
+	length := q.redisConnIn.LLen(q.procQueueKey())
 	if length.Val() != 0 {
 		t.Errorf("Expected %d but got %d", 0, length.Val())
 	}
 
-	length = q.redisConn.LLen(q.waitingQueueKey())
+	length = q.redisConnIn.LLen(q.waitingQueueKey())
 	if length.Val() != 2 {
 		t.Errorf("Expected %d but got %d", 2, length.Val())
 	}
@@ -192,7 +192,7 @@ func TestPurge(t *testing.T) {
 	q.Dequeue()
 
 	q.Purge()
-	res := q.redisConn.LLen(q.procQueueKey())
+	res := q.redisConnIn.LLen(q.procQueueKey())
 	if res.Err() != nil {
 		t.Errorf("Expected nil but got %s", res.Err())
 		t.FailNow()
@@ -201,7 +201,7 @@ func TestPurge(t *testing.T) {
 		t.Errorf("Expected %d but got %d", 0, res.Val())
 	}
 
-	res = q.redisConn.LLen(q.waitingQueueKey())
+	res = q.redisConnIn.LLen(q.waitingQueueKey())
 	if res.Err() != nil {
 		t.Errorf("Expected nil but got %s", res.Err())
 		t.FailNow()

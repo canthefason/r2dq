@@ -20,12 +20,20 @@ var (
 type Queue struct {
 	prefix    string
 	redisConn *redis.Client
+	redisConnIn  *redis.Client
+	redisConnOut *redis.Client
 }
 
 func NewQueue(addr string, db int, prefix string) *Queue {
 	q := new(Queue)
 	q.prefix = prefix
-	q.redisConn = redis.NewTCPClient(&redis.Options{
+	q.redisConnIn = redis.NewTCPClient(&redis.Options{
+		Addr:     addr,
+		Password: "",
+		DB:       int64(db),
+	})
+
+	q.redisConnOut = redis.NewTCPClient(&redis.Options{
 		Addr:     addr,
 		Password: "",
 		DB:       int64(db),
@@ -35,13 +43,13 @@ func NewQueue(addr string, db int, prefix string) *Queue {
 }
 
 func (q *Queue) Queue(value string) error {
-	res := q.redisConn.LPush(q.waitingQueueKey(), value)
+	res := q.redisConnIn.LPush(q.waitingQueueKey(), value)
 
 	return res.Err()
 }
 
 func (q *Queue) Dequeue() (string, error) {
-	res := q.redisConn.BRPopLPush(q.waitingQueueKey(), q.procQueueKey(), 0)
+	res := q.redisConnOut.BRPopLPush(q.waitingQueueKey(), q.procQueueKey(), 0)
 
 	if res.Err() != nil && res.Err() != redis.Nil {
 		return "", res.Err()
@@ -68,7 +76,7 @@ func (q *Queue) NAck(val string) error {
 }
 
 func (q *Queue) removeProcItem(val string) error {
-	res := q.redisConn.LRem(q.procQueueKey(), 1, val)
+	res := q.redisConnIn.LRem(q.procQueueKey(), 1, val)
 	if res.Err() != nil {
 		return res.Err()
 	}
@@ -83,29 +91,29 @@ func (q *Queue) removeProcItem(val string) error {
 
 func (q *Queue) Close() {
 	q.gracefulShutdown()
-	q.redisConn.Close()
+	q.redisConnIn.Close()
 }
 
 func (q *Queue) Purge() {
-	res := q.redisConn.Del(q.procQueueKey())
+	res := q.redisConnIn.Del(q.procQueueKey())
 	if res.Err() != nil {
 		log.Panicf("Could not purge unacked message queue: %s", res.Err())
 	}
-	res = q.redisConn.Del(q.waitingQueueKey())
+	res = q.redisConnIn.Del(q.waitingQueueKey())
 	if res.Err() != nil {
 		log.Panicf("Could not purge message queue: %s", res.Err())
 	}
 }
 
 func (q *Queue) Len() (int64, error) {
-	res := q.redisConn.LLen(q.waitingQueueKey())
+	res := q.redisConnIn.LLen(q.waitingQueueKey())
 
 	return res.Val(), res.Err()
 }
 func (q *Queue) gracefulShutdown() {
-	res := q.redisConn.RPopLPush(q.procQueueKey(), q.waitingQueueKey())
+	res := q.redisConnIn.RPopLPush(q.procQueueKey(), q.waitingQueueKey())
 	for res.Val() != "" {
-		res = q.redisConn.RPopLPush(q.procQueueKey(), q.waitingQueueKey())
+		res = q.redisConnIn.RPopLPush(q.procQueueKey(), q.waitingQueueKey())
 	}
 
 	if res.Err() != redis.Nil {
